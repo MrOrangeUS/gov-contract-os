@@ -12,3 +12,18 @@ The project is structured as a monorepo containing three main applications:
 - **Web** (`apps/web`): A Next.js frontend that provides a user interface for searching opportunities, creating workspaces, running pipelines, and viewing generated artifacts.
 
 See each application's README for additional setup and usage details.
+
+## V1 Baseline — Infra + Pipeline Skeleton
+
+**Status:** v1 baseline is a locked skeleton with end-to-end wiring and callable pipeline.
+
+✅ Done
+- Supabase + Redis + Render + Vercel wiring
+- Next.js UI: Run Pipeline button + toasts + polling + View Compliance XLSX support
+- FastAPI /jobs endpoints for enqueue + status
+- Celery worker discovers task names and can execute pipeline calls (tasks stubbed)
+
+⏳ Deferred (intentionally not implemented in v1)
+- Live SAM.gov ingestion
+- Real PDF parsing + requirement extraction
+- Real Compliance XLSX generation + Drive export/permissions
