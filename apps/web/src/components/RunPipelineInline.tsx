@@ -1,23 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { runPipeline, getJobStatus } from '../lib/api';
 import { useToast } from './ToastProvider';
 import Link from 'next/link';
 
 interface Props {
-  id: string;
+  opportunityId: string;
+  initialTaskId?: string | null;
+  webViewLink?: string | null;
 }
 
-export default function RunPipelineInline({ id }: Props) {
-  const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle');
-  const [webViewLink, setWebViewLink] = useState<string | null>(null);
-  const { showToast } = useToast();
+export default function RunPipelineInline({
+  opportunityId,
+  initialTaskId = null,
+  webViewLink: initialWebViewLink = null,
+}: Props) {
+  const [status, setStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle');
+  const [webViewLink, setWebViewLink] = useState<string | null>(initialWebViewLink);
+  const showToast = useToast();
 
   const handleClick = async () => {
     setStatus('running');
     try {
-      const data = await runPipeline(id);
+      const data = await runPipeline(opportunityId);
       const taskId =
         data.taskId ||
         data.task_id ||
@@ -36,59 +42,40 @@ export default function RunPipelineInline({ id }: Props) {
     }
   };
 
-  const pollStatus = (taskId: string) => {
-    const interval = 3000;
-    const check = async () => {
-      try {
-        const result = await getJobStatus(taskId);
-        const state =
-          result.state || result.status || result.state?.status;
-        if (state === 'SUCCESS' || state === 'COMPLETED') {
-          setStatus('completed');
-          showToast('Pipeline completed successfully', 'success');
-          const link =
-            result.webViewLink ||
-            result.result?.webViewLink ||
-            result.result?.web_view_link;
-          if (link) {
-            setWebViewLink(link);
-          }
-        } else if (state === 'FAILURE' || state === 'FAILED') {
-          setStatus('idle');
-          showToast('Pipeline failed', 'error');
-        } else {
-          setTimeout(check, interval);
-        }
-      } catch (error) {
-        showToast('Failed to fetch job status', 'error');
-        setStatus('idle');
+  const pollStatus = async (taskId: string) => {
+    try {
+      const data = await getJobStatus(taskId);
+      if (data.state === 'PENDING' || data.state === 'STARTED') {
+        setTimeout(() => pollStatus(taskId), 2000);
+      } else if (data.state === 'SUCCESS') {
+        setStatus('completed');
+        setWebViewLink(data.webViewLink || data.complianceXlsxLink || null);
+      } else {
+        showToast('Pipeline failed', 'error');
+        setStatus('failed');
       }
-    };
-    check();
+    } catch (err) {
+      showToast('Failed to get status', 'error');
+      setStatus('failed');
+    }
   };
 
+  useEffect(() => {
+    if (initialTaskId) {
+      pollStatus(initialTaskId);
+    }
+  }, [initialTaskId]);
+
   return (
-    <div className="flex items-center space-x-2">
-      <button
-        onClick={handleClick}
-        disabled={status === 'running' || status === 'completed'}
-        className={`px-4 py-1 rounded ${
-          status === 'running' || status === 'completed'
-            ? 'bg-gray-300'
-            : 'bg-blue-600 text-white hover:bg-blue-700'
-        }`}
-      >
-        {status === 'running'
-          ? 'Running…'
-          : status === 'completed'
-          ? 'Completed'
-          : 'Run Pipeline'}
-      </button>
+    <>
+      <Button disabled={status === 'running' || status === 'completed'} onClick={handleClick}>
+        {status === 'running' ? 'Running...' : status === 'completed' ? 'Completed' : 'Run Pipeline'}
+      </Button>
       {webViewLink && (
-        <Link href={webViewLink} target="_blank">
+        <Link href={webViewLink} target="_blank" rel="noopener noreferrer">
           View Compliance XLSX
         </Link>
       )}
-    </div>
+    </>
   );
 }
