@@ -18,7 +18,7 @@ export default function RunPipelineInline({
 }: Props) {
   const [status, setStatus] = useState<'idle' | 'running' | 'completed' | 'failed'>('idle');
   const [webViewLink, setWebViewLink] = useState<string | null>(initialWebViewLink);
-  const showToast = useToast();
+  const { showToast } = useToast();
 
   const handleClick = async () => {
     setStatus('running');
