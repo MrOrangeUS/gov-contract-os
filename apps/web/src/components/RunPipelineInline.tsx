@@ -68,9 +68,16 @@ export default function RunPipelineInline({
 
   return (
     <>
-      <Button disabled={status === 'running' || status === 'completed'} onClick={handleClick}>
-        {status === 'running' ? 'Running...' : status === 'completed' ? 'Completed' : 'Run Pipeline'}
-      </Button>
+      <button
+        disabled={status === 'running' || status === 'completed'}
+        onClick={handleClick}
+      >
+        {status === 'running'
+          ? 'Running...'
+          : status === 'completed'
+          ? 'Completed'
+          : 'Run Pipeline'}
+      </button>
       {webViewLink && (
         <Link href={webViewLink} target="_blank" rel="noopener noreferrer">
           View Compliance XLSX
